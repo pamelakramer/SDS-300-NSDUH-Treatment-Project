@@ -1,0 +1,515 @@
+---
+title: "SDS300 cleaning"
+author: "Pamela kramer"
+date: '2023-04-17'
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+library(psych)
+library(mosaic)
+library(skimr)
+library(gapminder)
+library(ggplot2)
+library(MASS)
+library(tidyr)
+library(car)
+```
+
+```{r}
+# Load the data
+load("NSDUH_2021.Rdata")
+```
+
+```{r}
+any(names(PUF2021_100622) == 'anynsmh')
+```
+
+#Data Cleaning
+```{r}
+#Medication Subset
+cleanrx<-data.frame(PUF2021_100622)%>%
+   dplyr::select(irsex,AGE3, income,yodsmmde, yofamdoc,yoothdoc,yopsych, yopsymd, yosocwrk, yocouns, yoothmhp, yonurse, yhosp,yresid, yfost, ydaytrt, yclin,yhome, yspec,yshsw, yotmtnow,yorxhlp)%>%
+  filter(yorxhlp !=99 & yorxhlp !=98 & yorxhlp!=97 &yorxhlp!=94)%>%
+  mutate(across(where(is.numeric),~na_if(.,99)))%>%
+  mutate(across(where(is.numeric),~na_if(.,98)))%>%
+   mutate(across(where(is.numeric),~na_if(.,97)))%>%
+   mutate(across(where(is.numeric),~na_if(.,94)))%>%
+  na.omit(cleanrx)
+
+## pre filtering count is 523, post is 415
+
+cleanrx$irsex[cleanrx$irsex == 2] <-0
+cleanrx$yofamdoc[cleanrx$yofamdoc == 6] <-0
+cleanrx$yoothdoc[cleanrx$yoothdoc == 6] <-0
+cleanrx$yopsych[cleanrx$yopsych == 6] <-0
+cleanrx$yopsymd[cleanrx$yopsymd == 6] <-0
+cleanrx$yosocwrk[cleanrx$yosocwrk == 6] <-0
+cleanrx$yocouns[cleanrx$yocouns == 6] <-0
+cleanrx$yoothmhp[cleanrx$yoothmhp == 6] <-0 
+cleanrx$yonurse[cleanrx$yonurse == 6] <-0  
+cleanrx$yotmtnow[cleanrx$yotmtnow == 2] <-0
+cleanrx$yodsmmde[cleanrx$ yodsmmde== 2] <-0
+
+
+#cleanrx<-cleanrx%>%
+  #mutate(envsum=yhosp+ yresid+ yfost+ ydaytrt+ yclin+yther+yhome+ yped+ yspec+yshsw)
+  #mutate(pracsum = yofamdoc+yoothdoc+yopsych+ yopsymd+yosocwrk+yocouns+yoothmhp+yonurse)
+
+#Counseling Subset
+cleanmth<-data.frame(PUF2021_100622)%>%
+   dplyr::select(irsex,AGE3, income,yodsmmde,yofamdoc,yoothdoc,yopsych, yopsymd, yosocwrk, yocouns, yoothmhp, yonurse, yhosp, yresid, yfost, ydaytrt, yclin,yhome, yspec,yshsw, yotmtnow,yotmthlp)%>%
+  filter(yotmthlp !=99 & yotmthlp !=98 & yotmthlp!=97 &yotmthlp!=94)%>%
+    mutate(across(where(is.numeric),~na_if(.,99)))%>%
+  mutate(across(where(is.numeric),~na_if(.,98)))%>%
+   mutate(across(where(is.numeric),~na_if(.,97)))%>%
+   mutate(across(where(is.numeric),~na_if(.,94)))%>%
+na.omit(cleanmth)
+
+## pre filtering count is 965, now 908
+
+cleanmth$irsex[cleanmth$irsex == 2] <-0
+cleanmth$yofamdoc[cleanmth$yofamdoc == 6] <-0
+cleanmth$yoothdoc[cleanmth$yoothdoc == 6] <-0
+cleanmth$yopsych[cleanmth$yopsych == 6] <-0
+cleanmth$yopsymd[cleanmth$yopsymd == 6] <-0
+cleanmth$yosocwrk[cleanmth$yosocwrk == 6] <-0
+cleanmth$yocouns[cleanmth$yocouns == 6] <-0
+cleanmth$yoothmhp[cleanmth$yoothmhp == 6] <-0 
+cleanmth$yonurse[cleanmth$yonurse == 6] <-0  
+cleanmth$yotmtnow[cleanmth$yotmtnow == 2] <-0
+cleanmth$yodsmmde[cleanmth$ yodsmmde== 2] <-0
+
+#cleanmth<-cleanmth%>%
+  #mutate(envsum=yhosp+ yresid+ yfost+ ydaytrt+ yclin+yther+yhome+ yped+ yspec+yshsw)
+#mutate(pracsum = yofamdoc+yoothdoc+yopsych+ yopsymd+yosocwrk+yocouns+yoothmhp+yonurse)
+
+#Combined Set of Both Answers
+
+cleanboth<-data.frame(PUF2021_100622)%>%
+   dplyr::select(irsex,AGE3, income,yofamdoc,yoothdoc,yopsych, yopsymd, yosocwrk, yocouns, yoothmhp, yonurse, yhosp, yresid, yfost, ydaytrt, yclin,yhome, yspec,yshsw,ANYMHIN2,anymhout,ANYSMH2, anynsmh,yotmthlp, yorxhlp )%>%
+  filter(yotmthlp !=99 & yotmthlp !=98 & yotmthlp!=97 &yotmthlp!=94 & yorxhlp !=99 & yorxhlp !=98 & yorxhlp!=97 &yorxhlp!=94)%>%
+    mutate(across(where(is.numeric),~na_if(.,99)))%>%
+  mutate(across(where(is.numeric),~na_if(.,98)))%>%
+   mutate(across(where(is.numeric),~na_if(.,97)))%>%
+   mutate(across(where(is.numeric),~na_if(.,94)))%>%
+na.omit(cleanboth)
+
+
+
+
+cleanboth$yofamdoc[cleanboth$yofamdoc == 6] <-0
+cleanboth$yoothdoc[cleanboth$yoothdoc == 6] <-0
+cleanboth$yopsych[cleanboth$yopsych == 6] <-0
+cleanboth$yopsymd[cleanboth$yopsymd == 6] <-0
+cleanboth$yosocwrk[cleanboth$yosocwrk == 6] <-0
+cleanboth$yocouns[cleanboth$yocouns == 6] <-0
+cleanboth$yoothmhp[cleanboth$yoothmhp == 6] <-0 
+cleanboth$yonurse[cleanboth$yonurse == 6] <-0  
+
+
+
+
+```
+
+#Name Change
+
+```{r}
+cleanrx<-cleanrx%>%
+  rename("Sex"= "irsex")%>%
+  rename( "Age" = "AGE3")%>%
+  rename( "Income" = "income")%>%
+  rename( "MDD Severity" = "yodsmmde")%>%
+  rename("Family Doc" = "yofamdoc")%>%
+  rename("Oth Doc" = "yoothdoc")%>%
+  rename("Psychiatrist" = "yopsymd")%>%
+  rename("Psychologist"= "yopsych")%>%
+  rename("Social Worker"="yosocwrk")%>%
+  rename("Counselor" ="yocouns")%>%
+  rename("Oth MH Prac" ="yoothmhp")%>%
+  rename("Nurse"="yonurse")%>%
+  rename("School Soc Wrk/Couns"= "yshsw")%>%
+  rename("Hospital"="yhosp")%>%
+  rename("Residential Center"="yresid")%>%
+  rename("Foster Care"="yfost")%>%
+  rename("Day Treatment"="ydaytrt")%>%
+  rename("MH Clinic"="yclin")%>%
+  rename("Home Couns"="yhome")%>%
+  rename("School"="yspec")%>%
+  rename("Cocurrent Couns"="yotmtnow")
+
+
+cleanmth<-cleanmth%>%
+  rename("Sex"= "irsex")%>%
+  rename( "Age" = "AGE3")%>%
+  rename( "Income" = "income")%>%
+  rename( "MDD Severity" = "yodsmmde")%>%
+  rename("Family Doc" = "yofamdoc")%>%
+  rename("Oth Doc" = "yoothdoc")%>%
+  rename("Psychiatrist" = "yopsymd")%>%
+  rename("Psychologist"= "yopsych")%>%
+  rename("Social Worker"="yosocwrk")%>%
+  rename("Counselor" ="yocouns")%>%
+  rename("Oth MH Prac" ="yoothmhp")%>%
+  rename("Nurse"="yonurse")%>%
+  rename("School Soc Wrk/Couns"= "yshsw")%>%
+  rename("Hospital"="yhosp")%>%
+  rename("Residential Center"="yresid")%>%
+  rename("Foster Care"="yfost")%>%
+  rename("Day Treatment"="ydaytrt")%>%
+  rename("MH Clinic"="yclin")%>%
+  rename("Home Couns"="yhome")%>%
+  rename("School"="yspec")%>%
+  rename("Cocurrent Couns"="yotmtnow")
+
+
+#Sex, Age, Income, MDD Severity, Family Doc, Oth Doc, Psychiatrist, Psychologist, Social Worker, Counselor, Oth MH Prac., Nurse, Hospital, Residential Center, Foster Care, Day Treatment, MH Clinic, Home Couns, School, School Soc Wrk/Couns
+
+#6 places, 10 practitioner
+
+#irsex,AGE3, income,yodsmmde, yofamdoc,yoothdoc,yopsych, yopsymd, yosocwrk, yocouns, yoothmhp, yonurse, yhosp,yresid, yfost, ydaytrt, yclin,yhome, yspec,yshsw, yotmtnow,yorxhlp
+
+```
+
+
+
+#Checking Assumptions
+```{r}
+qplot(x=yorxhlp, data=cleanrx, bins=5)
+qplot(x=yotmthlp, data=cleanmth, bins=5)
+
+favstats(cleanrx$yorxhlp)
+favstats(cleanmth$yotmthlp)
+
+ggplot(cleanrx, aes(sample=yorxhlp))+stat_qq()+theme_bw()
+ggplot(cleanmth, aes(sample=yotmthlp))+stat_qq()+theme_bw()
+```
+
+
+#MANOVA Boxplot Code 
+
+```{r}
+cleanlabel<-cleanboth%>%
+  rename("Medication"= "yorxhlp")%>%
+  rename( "Counseling" = "yotmthlp")
+ cleanlabel$ANYMHIN2[cleanlabel$ANYMHIN2 == 0] <-"No Inpatient Experience"
+cleanlabel$ANYMHIN2[cleanlabel$ANYMHIN2 == 1] <-"Inpatient Experience"
+cleanlabel$anymhout[cleanlabel$anymhout == 0] <-"No Outpatient Experience"
+cleanlabel$anymhout[cleanlabel$anymhout == 1] <-"Outpatient Experience"
+cleanlabel$ANYSMH2[cleanlabel$ANYSMH2 == 0] <-"No Speacilty Experience"
+cleanlabel$ANYSMH2[cleanlabel$ANYSMH2 == 1] <-"Speacilty Experience"
+cleanlabel$anynsmh[cleanlabel$anynsmh == 0] <-"No Non-Speacilty Experience"
+cleanlabel$anynsmh[cleanlabel$anynsmh == 1] <-"Non-Speacilty Experience"
+
+```
+
+```{r}
+cleanboth<-mutate(cleanboth, pracmd=ifelse(yofamdoc == 1 | yoothdoc == 1 |yopsymd == 1 | yonurse == 1, 1,0))%>%
+mutate(cleanboth, pracpsych=ifelse(yopsych == 1 | yosocwrk == 1 | yocouns == 1  | yoothmhp ==1 , 1,0))
+cleanlabel<-mutate(cleanlabel, pracmd=ifelse(yofamdoc == 1 | yoothdoc == 1 |yopsymd == 1 | yonurse == 1, 1,0))%>%
+mutate(cleanboth, pracpsych=ifelse(yopsych == 1 | yosocwrk == 1 | yocouns == 1 |  yoothmhp ==1 , 1,0))
+cleanlabel$pracmd[cleanlabel$pracmd == 0] <-"Non-Medical Practioner"
+cleanlabel$pracmd[cleanlabel$pracmd == 1] <-"Medical Practioner"
+```
+
+ 
+
+```{r}
+cleanlabel %>% 
+  pivot_longer(
+    cols = c("Medication", "Counseling"),
+    names_to = "Treatment",
+    values_to = "score"
+  ) %>% 
+  ggplot(aes(x = as.factor(ANYMHIN2), y = score, fill = Treatment)) +
+  geom_boxplot()+
+  labs(
+    title = "Treatment Efficacy by Experience with Inpatient Services",
+    x = "Environment",
+    y = "Percieved Helpfulness"
+  ) 
+
+cleanlabel %>% 
+  pivot_longer(
+    cols = c("Medication", "Counseling"),
+    names_to = "Treatment",
+    values_to = "score"
+  ) %>% 
+  ggplot(aes(x = as.factor(anymhout), y = score, fill = Treatment)) +
+  geom_boxplot()+
+  labs(
+    title = "Treatment Efficacy by Experience with Outpatient Services",
+    x = "Environment",
+    y = "Percieved Helpfulness"
+  ) 
+
+cleanlabel %>% 
+  pivot_longer(
+    cols = c("Medication", "Counseling"),
+    names_to = "Treatment",
+    values_to = "score"
+  ) %>% 
+  ggplot(aes(x = as.factor(ANYSMH2), y = score, fill = Treatment)) +
+  geom_boxplot()+
+  labs(
+    title = "Treatment Efficacy by Experience with Specialty Services",
+    x = "Environment",
+    y = "Percieved Helpfulness"
+  ) 
+
+cleanlabel %>% 
+  pivot_longer(
+    cols = c("Medication", "Counseling"),
+    names_to = "Treatment",
+    values_to = "score"
+  ) %>% 
+  ggplot(aes(x = as.factor(anynsmh), y = score, fill = Treatment)) +
+  geom_boxplot()+
+  labs(
+    title = "Treatment Efficacy by Experience with Non-Specialty Services",
+    x = "Environment",
+    y = "Percieved Helpfulness"
+  ) 
+```
+```{r}
+cleanlabel %>% 
+  pivot_longer(
+    cols = c("Medication", "Counseling"),
+    names_to = "Treatment",
+    values_to = "score"
+  ) %>% 
+  ggplot(aes(x = as.factor(pracmd), y = score, fill = Treatment)) +
+  geom_boxplot()+
+  labs(
+    title = "Treatment Efficacy by Experience with Medical Practioners",
+    x = "Practioner Type",
+    y = "Percieved Helpfulness"
+  ) 
+
+
+```
+
+
+
+
+```{r}
+#MANOVA
+
+
+
+inmodel <- manova(cbind(cleanboth$yorxhlp, cleanboth$yotmthlp) ~ as.character(ANYMHIN2), data=cleanboth)
+summary(inmodel,intercept=TRUE)
+
+outmodel <- manova(cbind(cleanboth$yorxhlp, cleanboth$yotmthlp) ~ anymhout, data=cleanboth)
+summary(outmodel, intercept=TRUE)
+
+specmodel <- manova(cbind(cleanboth$yorxhlp, cleanboth$yotmthlp) ~ ANYSMH2, data=cleanboth)
+summary(specmodel, intercept=TRUE)
+
+nospecmodel <- manova(cbind(cleanboth$yorxhlp, cleanboth$yotmthlp) ~ anynsmh, data=cleanboth)
+summary(nospecmodel, intercept=TRUE)
+```
+variable name significant= there is a significant difference among both groups 
+
+
+```{r}
+pracmdmodel <- manova(cbind(cleanboth$yorxhlp, cleanboth$yotmthlp) ~ pracmd, data=cleanboth)
+summary(pracmdmodel, intercept=TRUE)
+
+```
+
+
+```{r}
+#Pairwise 
+outmodel1 <- aov(anymhout ~ yorxhlp, data =cleanboth )
+outmodel2 <-aov(anymhout ~ yotmthlp, data=cleanboth)
+
+summary(outmodel1)
+summary(outmodel2)
+```
+
+```{r}
+specmodel1 <- aov(ANYMHIN2 ~ yorxhlp, data =cleanboth )
+specmodel2 <-aov( ANYMHIN2~ yotmthlp, data=cleanboth)
+
+summary(specmodel1)
+summary(specmodel2)
+```
+
+
+
+#Correlation Matrix
+```{r}
+
+# Medication Subset Correlation
+
+cor(cleanrx, method= "pearson", use= "na.or.complete")
+
+
+# Counseling Subset Correlation
+cor(cleanmth, method= "pearson", use= "na.or.complete")
+
+#note: the correlation doesn't work because every single one of these participants has seen a doctor
+```
+
+
+
+
+```{r}
+# Rx x Practitioner Analyses Prelim
+rxprac<-lm(yorxhlp ~ yoseedoc+yopsych+yopsymd+yosocwrk+yocouns+yoothmhp+yonurse, data=cleanrx)
+summary(rxprac)
+
+# Rx x Environment Prelim
+
+rxenv<-lm(yorxhlp ~ yhosp+ yresid+ yfost+ ydaytrt+ yclin+yther+yhome+ yped+ yspec+yshsw, data=cleanrx,na.action=na.exclude)
+summary(rxenv)
+#  Counseling x Practitioner Prelim
+mthprac<-lm(yotmthlp ~ yopsych+yopsymd+yosocwrk+yocouns+yoothmhp+yonurse, data=cleanmth)
+summary(mthprac)
+```
+
+
+
+# Stepwise x Medication Outcome
+```{r}
+rxhelp <- cleanrx$yorxhlp
+rxind <- cleanrx[, c("Sex", "Age", "Income", "MDD Severity", "Family Doc", "Oth Doc", "Psychiatrist", "Psychologist", "Social Worker", "Counselor", "Oth MH Prac", "Nurse", "Hospital", "Residential Center", "Foster Care", "Day Treatment", "MH Clinic", "Home Couns", "School", "School Soc Wrk/Couns", "Cocurrent Couns")]
+```
+
+
+
+```{r}
+# Fit the initial model
+rxprac1 <- glm(as.factor(rxhelp) ~ ., data = rxind, family = "binomial")
+
+# Perform stepwise regression
+steprx <- step(rxprac1, direction = "both")
+
+```
+
+```{r}
+step(steprx)
+```
+
+```{r}
+summary(steprx)
+names(summary(steprx))
+```
+
+
+```{r}
+rxprac2 <- stepAIC(lm(yorxhlp ~ ., data = cleanrx))
+```
+
+```{r}
+summary(rxprac2)
+```
+
+# Visulizations
+```{r}
+# Extract coefficients and confidence intervals
+
+coefficients1<- broom::tidy(steprx) %>% 
+  filter(term != "(Intercept)") %>% 
+  mutate(lower = estimate - 1.96 * std.error,
+         upper = estimate + 1.96 * std.error)
+
+ggplot(coefficients1, aes(x = term, y = estimate)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) + 
+  coord_flip() + 
+  labs(title = "Percieved Medication Efficacy step() Analysis", subtitle="Coefficient Plot",x = "Treatment Contextual Variables", y = "Coefficients and Confidence Intervals")
+
+```
+
+```{r}
+coefficients2<- broom::tidy(rxprac2) %>% 
+  filter(term != "(Intercept)") %>% 
+  mutate(lower = estimate - 1.96 * std.error,
+         upper = estimate + 1.96 * std.error)
+
+ggplot(coefficients2, aes(x = term, y = estimate)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) + 
+  coord_flip() + 
+  labs(title = "Percieved Medication Efficacy stepAIC() Analysis", subtitle="Coefficient Plot", x = "Treatment Contextual Variables", y = "Coefficients and Confidence Intervals")
+```
+```{r}
+crPlots(rxprac2)
+```
+
+
+
+#Stepwise x Counseling 
+
+```{r}
+mthhelp <- cleanmth$yotmthlp
+mthind <- cleanmth[, c("Sex", "Age", "Income", "Family Doc", "Oth Doc", "Psychiatrist", "Psychologist", "Social Worker", "Counselor", "Oth MH Prac", "Nurse", "Hospital", "Residential Center", "Foster Care", "Day Treatment", "MH Clinic", "Home Couns", "School", "School Soc Wrk/Couns")]
+```
+
+
+```{r}
+# Fit the initial model
+mthprac1 <- glm(as.factor(mthhelp) ~ ., data = mthind, family = "binomial")
+
+# Perform stepwise regression
+stepmth <- step(mthprac1, direction = "both")
+
+```
+
+
+```{r}
+step(stepmth)
+```
+
+```{r}
+summary(stepmth)
+```
+
+
+```{r}
+stepmth2 <- stepAIC(lm(yotmthlp ~ ., data = cleanmth))
+```
+
+```{r}
+summary(stepmth2)
+```
+
+
+```{r}
+coefficients3<- broom::tidy(stepmth) %>% 
+  filter(term != "(Intercept)") %>% 
+  mutate(lower = estimate - 1.96 * std.error,
+         upper = estimate + 1.96 * std.error)
+
+ggplot(coefficients3, aes(x = term, y = estimate)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) + 
+  coord_flip() + 
+  labs(title = "Percieved Counseling Efficacy step() Analysis", subtitle="Coefficient Plot", x = "Contextual Variables", y = "Coefficient")
+```
+
+```{r}
+coefficients3<- broom::tidy(stepmth2) %>% 
+  filter(term != "(Intercept)") %>% 
+  mutate(lower = estimate - 1.96 * std.error,
+         upper = estimate + 1.96 * std.error)
+
+ggplot(coefficients3, aes(x = term, y = estimate)) + 
+  geom_point() + 
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2) + 
+  coord_flip() + 
+  labs(title = "Percieved Counseling Efficacy stepAIC() Analysis", subtitle="Coefficient Plot", x = "Contextual Variables", y = "Coefficient")
+```
+
+```{r}
+crPlots(stepmth2)
+```
+
+
+
+
+
